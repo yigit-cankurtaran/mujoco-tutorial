@@ -1,5 +1,6 @@
 import argparse
 import os
+import sys
 import time
 
 import mujoco
@@ -22,6 +23,12 @@ def main() -> None:
     xml_path = args.xml_path
     model = mujoco.MjModel.from_xml_path(xml_path)
     data = mujoco.MjData(model)
+
+    if sys.platform == "darwin" and not os.environ.get("MJPYTHON_BIN"):
+        raise RuntimeError(
+            "On macOS, MuJoCo's viewer requires running under `mjpython`.\n"
+            "Try: mjpython visualize.py {}".format(xml_path)
+        )
 
     with mujoco.viewer.launch_passive(model, data) as viewer:
         while viewer.is_running():
