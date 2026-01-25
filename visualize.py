@@ -1,0 +1,34 @@
+import argparse
+import os
+import time
+
+import mujoco
+import mujoco.viewer
+
+
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="Visualize a MuJoCo XML model.")
+    parser.add_argument(
+        "xml_path",
+        nargs="?",
+        default=os.path.join(os.path.dirname(__file__), "hello.xml"),
+        help="Path to the MuJoCo XML file (default: ./hello.xml).",
+    )
+    return parser.parse_args()
+
+
+def main() -> None:
+    args = parse_args()
+    xml_path = args.xml_path
+    model = mujoco.MjModel.from_xml_path(xml_path)
+    data = mujoco.MjData(model)
+
+    with mujoco.viewer.launch_passive(model, data) as viewer:
+        while viewer.is_running():
+            mujoco.mj_step(model, data)
+            viewer.sync()
+            time.sleep(0.01)
+
+
+if __name__ == "__main__":
+    main()
