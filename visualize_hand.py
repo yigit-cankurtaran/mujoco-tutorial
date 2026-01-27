@@ -31,6 +31,11 @@ def main() -> None:
         )
 
     with mujoco.viewer.launch_passive(model, data) as viewer:
+        # Frame the hand in view on launch.
+        viewer.cam.lookat[:] = [0.12, 0.0, 0.9]
+        viewer.cam.distance = 0.9
+        viewer.cam.azimuth = 135.0
+        viewer.cam.elevation = -20.0
         while viewer.is_running():
             mujoco.mj_step(model, data)
             viewer.sync()
