@@ -1,0 +1,39 @@
+<mujoco model="quadcopter">
+  <compiler angle="degree" inertiafromgeom="true"/>
+  <option timestep="0.01" gravity="0 0 -9.81" integrator="RK4"/>
+
+  <default>
+    <geom contype="0" conaffinity="0" rgba="0.2 0.2 0.25 1"/>
+    <joint damping="0.02"/>
+  </default>
+
+  <worldbody>
+    <light pos="0 0 3" dir="0 0 -1" diffuse="1 1 1"/>
+    <geom name="ground" type="plane" size="5 5 0.1" rgba="0.95 0.95 0.95 1"/>
+
+    <body name="drone" pos="0 0 1.0">
+      <freejoint name="drone_free"/>
+      <geom name="body" type="box" size="0.06 0.06 0.02" mass="0.8" rgba="0.2 0.2 0.3 1"/>
+      <geom name="arm_x" type="capsule" fromto="-0.18 0 0 0.18 0 0" size="0.01" mass="0.1" rgba="0.3 0.3 0.35 1"/>
+      <geom name="arm_y" type="capsule" fromto="0 -0.18 0 0 0.18 0" size="0.01" mass="0.1" rgba="0.3 0.3 0.35 1"/>
+
+      <geom name="rotor_fl_geom" type="cylinder" pos="0.18 0.18 0" size="0.03 0.005" mass="0.05" rgba="0.1 0.1 0.1 1"/>
+      <geom name="rotor_fr_geom" type="cylinder" pos="0.18 -0.18 0" size="0.03 0.005" mass="0.05" rgba="0.1 0.1 0.1 1"/>
+      <geom name="rotor_bl_geom" type="cylinder" pos="-0.18 0.18 0" size="0.03 0.005" mass="0.05" rgba="0.1 0.1 0.1 1"/>
+      <geom name="rotor_br_geom" type="cylinder" pos="-0.18 -0.18 0" size="0.03 0.005" mass="0.05" rgba="0.1 0.1 0.1 1"/>
+
+      <site name="rotor_fl" pos="0.18 0.18 0" size="0.008" rgba="1 0 0 1"/>
+      <site name="rotor_fr" pos="0.18 -0.18 0" size="0.008" rgba="0 1 0 1"/>
+      <site name="rotor_bl" pos="-0.18 0.18 0" size="0.008" rgba="0 0 1 1"/>
+      <site name="rotor_br" pos="-0.18 -0.18 0" size="0.008" rgba="1 1 0 1"/>
+      <site name="center" pos="0 0 0" size="0.005" rgba="0 0 1 1"/>
+    </body>
+  </worldbody>
+
+  <actuator>
+    <general name="act_fl" site="rotor_fl" gear="0 0 1 0 0 0.02" ctrlrange="0 15" ctrllimited="true"/>
+    <general name="act_fr" site="rotor_fr" gear="0 0 1 0 0 -0.02" ctrlrange="0 15" ctrllimited="true"/>
+    <general name="act_bl" site="rotor_bl" gear="0 0 1 0 0 -0.02" ctrlrange="0 15" ctrllimited="true"/>
+    <general name="act_br" site="rotor_br" gear="0 0 1 0 0 0.02" ctrlrange="0 15" ctrllimited="true"/>
+  </actuator>
+</mujoco>
