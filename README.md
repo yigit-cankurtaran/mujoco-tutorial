@@ -43,6 +43,9 @@ or controlling each scene.
 ## Quick start
 
 ```bash
+# install dependencies
+python -m pip install mujoco
+
 # visualize the simplest scene
 python visualize.py
 
@@ -59,6 +62,30 @@ python quadcopter_square.py --radius 1.5 --height 1.2 --yaw-follow
 # hand demo
 python visualize_hand.py
 python fist_open.py --period 5.0
+```
+
+## Install & setup
+
+### 1) Install MuJoCo + Python bindings
+
+```bash
+python -m pip install mujoco
+```
+
+If you use a virtual environment, activate it before installing.
+
+### 2) Run a demo
+
+```bash
+python visualize.py
+```
+
+### 3) macOS users
+
+MuJoCo's viewer requires `mjpython` on macOS. Example:
+
+```bash
+mjpython visualize.py
 ```
 
 ## macOS note
