@@ -105,8 +105,10 @@ def require_id(model: mujoco.MjModel, obj: int, name: str) -> int:
     return idx
 
 
-def damped_least_squares(jac: np.ndarray, err: np.ndarray, damping: float) -> np.ndarray:
-    jjt = jac @ jac.T + (damping ** 2) * np.eye(3)
+def damped_least_squares(
+    jac: np.ndarray, err: np.ndarray, damping: float
+) -> np.ndarray:
+    jjt = jac @ jac.T + (damping**2) * np.eye(3)
     return jac.T @ np.linalg.solve(jjt, err)
 
 
