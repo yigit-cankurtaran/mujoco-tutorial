@@ -14,6 +14,9 @@ or controlling each scene.
 - `example_with_actuators.xml`
   - Same arm scene as `example.xml`, with named joints and motors added.
   - Useful for joint-space control demos.
+- `basic_arm.xml`
+  - Compact 3-link arm with hinge joints, motor actuators, and an end-effector site.
+  - Paired with the IK target-following demo.
 - `quadcopter.xml`
   - Quadrotor body with four rotor sites and general actuators.
   - Includes gravity, RK4 integrator, and a ground plane.
@@ -33,6 +36,9 @@ or controlling each scene.
 - `arm_curl.py`  
   PD-driven curling motion for two arm hinges
   (defaults to `example_with_actuators.xml`).
+- `arm_follow_target.py`  
+  IK demo that drives the arm toward a movable target sphere
+  (defaults to `basic_arm.xml`).
 - `quadcopter_square.py`  
   Simple quadcopter controller that flies a smooth looping path
   (defaults to `quadcopter.xml`).
@@ -55,6 +61,7 @@ python visualize.py quadcopter.xml
 # arm control demos
 python control_actuators.py
 python arm_curl.py --period 3.0 --amplitude 1.0
+python arm_follow_target.py
 
 # quadcopter loop
 python quadcopter_square.py --radius 1.5 --height 1.2 --yaw-follow
