@@ -10,6 +10,9 @@
   <worldbody>
     <light pos="0 1 1" dir="0 -1 -1" diffuse="1 1 1"/>
     <body pos="0 0 1">
+      <joint name="root_y" axis="0 1 0"/>
+      <joint name="root_x" axis="1 0 0"/>
+      <joint name="root_z" axis="0 0 1"/>
       <geom type="capsule" size="0.06" fromto="0 0 0  0 0 -.4"/>
       <body pos="0 0 -0.4">
         <joint name="hinge_y1" axis="0 1 0"/>
@@ -26,6 +29,9 @@
   </worldbody>
 
   <actuator>
+    <motor name="motor_root_y" joint="root_y" gear="50"/>
+    <motor name="motor_root_x" joint="root_x" gear="50"/>
+    <motor name="motor_root_z" joint="root_z" gear="50"/>
     <motor name="motor_hinge_y1" joint="hinge_y1" gear="50"/>
     <motor name="motor_hinge_x1" joint="hinge_x1" gear="50"/>
     <motor name="motor_hinge_y2" joint="hinge_y2" gear="50"/>

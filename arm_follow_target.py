@@ -76,10 +76,21 @@ def parse_args() -> argparse.Namespace:
         help="Damping term for IK (default: 0.05).",
     )
     parser.add_argument(
+        "--ik-max-error",
+        type=float,
+        default=0.15,
+        help="Clamp the IK position error per step in meters (default: 0.15).",
+    )
+    parser.add_argument(
         "--ik-max-offset",
         type=float,
         default=0.6,
         help="Clamp for IK joint offsets in radians (default: 0.6).",
+    )
+    parser.add_argument(
+        "--no-gravity-comp",
+        action="store_true",
+        help="Disable gravity/bias compensation.",
     )
     args = parser.parse_args()
     if args.move_step is None:
@@ -111,6 +122,9 @@ def main() -> None:
         )
 
     joint_actuator_pairs = [
+        ("root_y", "motor_root_y"),
+        ("root_x", "motor_root_x"),
+        ("root_z", "motor_root_z"),
         ("hinge_y1", "motor_hinge_y1"),
         ("hinge_x1", "motor_hinge_x1"),
         ("hinge_y2", "motor_hinge_y2"),
@@ -200,27 +214,30 @@ def main() -> None:
         marker_mat = np.eye(3).flatten()
 
         while viewer.is_running():
-            now = time.time()
-
             with viewer.lock():
                 mujoco.mj_jacSite(model, data, jacp, jacr, site_id)
                 site_pos = data.site_xpos[site_id]
                 err = target_pos - site_pos
+                err_norm = float(np.linalg.norm(err))
+                if args.ik_max_error is not None and err_norm > args.ik_max_error:
+                    err *= args.ik_max_error / err_norm
 
-            jac = jacp[:, dof_indices]
-            dq = damped_least_squares(jac, err, args.ik_damping)
-            dq = np.clip(dq, -args.ik_max_offset, args.ik_max_offset)
+                jac = jacp[:, dof_indices]
+                dq = damped_least_squares(jac, err, args.ik_damping)
+                dq = np.clip(dq, -args.ik_max_offset, args.ik_max_offset)
 
-            data.ctrl[:] = 0.0
-            for idx, state in enumerate(joint_states):
-                qpos = float(data.qpos[state["qpos_adr"]])
-                qvel = float(data.qvel[state["qvel_adr"]])
+                data.ctrl[:] = 0.0
+                for idx, state in enumerate(joint_states):
+                    qpos = float(data.qpos[state["qpos_adr"]])
+                    qvel = float(data.qvel[state["qvel_adr"]])
 
-                qpos_target = qpos + args.ik_gain * dq[idx]
-                torque = args.kp * (qpos_target - qpos) - args.kd * qvel
+                    qpos_target = qpos + args.ik_gain * dq[idx]
+                    torque = args.kp * (qpos_target - qpos) - args.kd * qvel
+                    if not args.no_gravity_comp:
+                        torque += float(data.qfrc_bias[state["dof_adr"]])
 
-                gear = state["gear"]
-                data.ctrl[state["aid"]] = torque / gear if gear != 0.0 else 0.0
+                    gear = state["gear"]
+                    data.ctrl[state["aid"]] = torque / gear if gear != 0.0 else 0.0
 
                 mujoco.mj_step(model, data)
 
