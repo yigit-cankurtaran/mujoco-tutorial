@@ -19,8 +19,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "xml_path",
         nargs="?",
-        default=os.path.join(os.path.dirname(__file__), "example_with_actuators.xml"),
-        help="Path to the MuJoCo XML file (default: ./example_with_actuators.xml).",
+        default=os.path.join(os.path.dirname(__file__), "basic_arm.xml"),
+        help="Path to the MuJoCo XML file (default: ./basic_arm.xml).",
     )
     parser.add_argument("--kp", type=float, default=25.0, help="Proportional gain.")
     parser.add_argument("--kd", type=float, default=3.0, help="Derivative gain.")

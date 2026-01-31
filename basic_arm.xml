@@ -1,0 +1,33 @@
+<mujoco model="basic_arm">
+  <default>
+    <geom rgba=".8 .6 .4 1"/>
+  </default>
+
+  <asset>
+    <texture type="skybox" builtin="gradient" rgb1="1 1 1" rgb2=".6 .8 .1" width="256" height="256"/>
+  </asset>
+
+  <worldbody>
+    <light pos="0 1 1" dir="0 -1 -1" diffuse="1 1 1"/>
+    <body pos="0 0 1">
+      <joint name="root_ball" type="ball"/>
+      <geom type="capsule" size="0.06" fromto="0 0 0  0 0 -.4"/>
+      <body pos="0 0 -0.4">
+        <joint name="hinge_y1" axis="0 1 0"/>
+        <joint name="hinge_x1" axis="1 0 0"/>
+        <geom type="capsule" size="0.04" fromto="0 0 0  .3 0 0"/>
+        <body pos=".3 0 0">
+          <joint name="hinge_y2" axis="0 1 0"/>
+          <joint name="hinge_z2" axis="0 0 1"/>
+          <geom pos=".1 0 0" size="0.1 0.08 0.02" type="ellipsoid"/>
+          <site name="end1" pos="0.2 0 0" size="0.01"/>
+        </body>
+      </body>
+    </body>
+  </worldbody>
+
+  <actuator>
+    <motor name="motor_hinge_y1" joint="hinge_y1" gear="50"/>
+    <motor name="motor_hinge_y2" joint="hinge_y2" gear="50"/>
+  </actuator>
+</mujoco>
