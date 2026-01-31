@@ -1,5 +1,4 @@
 import argparse
-import math
 import os
 import sys
 import time
@@ -12,7 +11,7 @@ import numpy as np
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description=(
-            "Curl the arm while applying an IK correction toward a movable target sphere. "
+            "Drive the arm toward a movable target sphere using IK. "
             "Arrow keys move the target (left/right = -/+x, up/down = +/-z)."
         )
     )
@@ -24,18 +23,6 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--kp", type=float, default=25.0, help="Proportional gain.")
     parser.add_argument("--kd", type=float, default=3.0, help="Derivative gain.")
-    parser.add_argument(
-        "--amplitude",
-        type=float,
-        default=0.8,
-        help="Curl amplitude in radians (default: 0.8).",
-    )
-    parser.add_argument(
-        "--period",
-        type=float,
-        default=4.0,
-        help="Seconds per full down-up cycle (default: 4.0).",
-    )
     parser.add_argument("--sleep", type=float, default=0.01, help="Loop sleep (s).")
     parser.add_argument(
         "--site",
@@ -123,23 +110,42 @@ def main() -> None:
             "Try: mjpython arm_follow_target.py {}".format(args.xml_path)
         )
 
-    hinge_joint_names = ["hinge_y1", "hinge_y2"]
-    hinge_actuator_names = ["motor_hinge_y1", "motor_hinge_y2"]
-
-    hinge_jids = [
-        require_id(model, mujoco.mjtObj.mjOBJ_JOINT, name) for name in hinge_joint_names
-    ]
-    hinge_aids = [
-        require_id(model, mujoco.mjtObj.mjOBJ_ACTUATOR, name)
-        for name in hinge_actuator_names
+    joint_actuator_pairs = [
+        ("hinge_y1", "motor_hinge_y1"),
+        ("hinge_x1", "motor_hinge_x1"),
+        ("hinge_y2", "motor_hinge_y2"),
+        ("hinge_z2", "motor_hinge_z2"),
     ]
 
-    dof_indices = [int(model.jnt_dofadr[jid]) for jid in hinge_jids]
+    joint_states = []
+    for joint_name, actuator_name in joint_actuator_pairs:
+        jid = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_JOINT, joint_name)
+        aid = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_ACTUATOR, actuator_name)
+        if jid < 0 or aid < 0:
+            print(
+                f"Skipping joint {joint_name}: missing joint or actuator ({actuator_name}).",
+                flush=True,
+            )
+            continue
+        if model.jnt_type[jid] != mujoco.mjtJoint.mjJNT_HINGE:
+            raise ValueError(f"Joint {joint_name} must be a hinge.")
+        dof_adr = int(model.jnt_dofadr[jid])
+        joint_states.append(
+            {
+                "name": joint_name,
+                "jid": jid,
+                "aid": aid,
+                "qpos_adr": int(model.jnt_qposadr[jid]),
+                "qvel_adr": dof_adr,
+                "dof_adr": dof_adr,
+                "gear": float(model.actuator_gear[aid, 0]),
+            }
+        )
 
-    qpos_base = {}
-    for name, jid in zip(hinge_joint_names, hinge_jids):
-        qpos_adr = model.jnt_qposadr[jid]
-        qpos_base[name] = float(data.qpos[qpos_adr])
+    if not joint_states:
+        raise ValueError("No usable hinge actuators found for IK control.")
+
+    dof_indices = [state["dof_adr"] for state in joint_states]
 
     site_id = require_id(model, mujoco.mjtObj.mjOBJ_SITE, args.site)
     mujoco.mj_forward(model, data)
@@ -157,8 +163,7 @@ def main() -> None:
     jacp = np.zeros((3, model.nv))
     jacr = np.zeros((3, model.nv))
 
-    t0 = time.time()
-    last_print_time = t0
+    last_print_time = time.time()
 
     # GLFW key codes for arrows (MuJoCo viewer uses GLFW under the hood).
     key_left = 263
@@ -197,36 +202,25 @@ def main() -> None:
         while viewer.is_running():
             now = time.time()
 
-            t = now - t0
-            phase = 0.5 * (1.0 - math.cos(2.0 * math.pi * t / args.period))
-            target_offset = args.amplitude * phase
-
             with viewer.lock():
                 mujoco.mj_jacSite(model, data, jacp, jacr, site_id)
                 site_pos = data.site_xpos[site_id]
                 err = target_pos - site_pos
 
-                jac = jacp[:, dof_indices]
-                dq = damped_least_squares(jac, err, args.ik_damping)
-                dq = np.clip(dq, -args.ik_max_offset, args.ik_max_offset)
+            jac = jacp[:, dof_indices]
+            dq = damped_least_squares(jac, err, args.ik_damping)
+            dq = np.clip(dq, -args.ik_max_offset, args.ik_max_offset)
 
-                data.ctrl[:] = 0.0
-                for idx, name, jid, aid in zip(
-                    range(len(hinge_joint_names)),
-                    hinge_joint_names,
-                    hinge_jids,
-                    hinge_aids,
-                ):
-                    qpos_adr = model.jnt_qposadr[jid]
-                    qvel_adr = model.jnt_dofadr[jid]
-                    qpos = float(data.qpos[qpos_adr])
-                    qvel = float(data.qvel[qvel_adr])
+            data.ctrl[:] = 0.0
+            for idx, state in enumerate(joint_states):
+                qpos = float(data.qpos[state["qpos_adr"]])
+                qvel = float(data.qvel[state["qvel_adr"]])
 
-                    qpos_target = qpos_base[name] + target_offset + args.ik_gain * dq[idx]
-                    torque = args.kp * (qpos_target - qpos) - args.kd * qvel
+                qpos_target = qpos + args.ik_gain * dq[idx]
+                torque = args.kp * (qpos_target - qpos) - args.kd * qvel
 
-                    gear = float(model.actuator_gear[aid, 0])
-                    data.ctrl[aid] = torque / gear if gear != 0.0 else 0.0
+                gear = state["gear"]
+                data.ctrl[state["aid"]] = torque / gear if gear != 0.0 else 0.0
 
                 mujoco.mj_step(model, data)
 
