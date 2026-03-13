@@ -2,3 +2,4 @@ __pycache__
 MUJOCO_LOG.TXT
 ik_info.md
 script_notes.md
+mujoco_env_creation.md
