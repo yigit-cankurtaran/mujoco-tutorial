@@ -6,6 +6,8 @@ import time
 import mujoco
 import mujoco.viewer
 
+from simple_mujoco_env import SimpleMujocoEnv
+
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
@@ -37,8 +39,9 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> None:
     args = parse_args()
-    model = mujoco.MjModel.from_xml_path(args.xml_path)
-    data = mujoco.MjData(model)
+    env = SimpleMujocoEnv(args.xml_path)
+    model = env.model
+    data = env.data
 
     # Drive the two hinge joints that visually curl the arm.
     hinge_joint_names = ["hinge_y1", "hinge_y2"]
@@ -77,7 +80,7 @@ def main() -> None:
                 gear = float(model.actuator_gear[aid, 0])
                 data.ctrl[aid] = torque / gear if gear != 0.0 else 0.0
 
-            mujoco.mj_step(model, data)
+            env.step()
             viewer.sync()
             time.sleep(args.sleep)
 

@@ -1,11 +1,12 @@
 import argparse
 import os
-import sys
 import time
 
 import mujoco
 import mujoco.viewer
 import numpy as np
+
+from simple_mujoco_env import SimpleMujocoEnv
 
 
 def parse_args() -> argparse.Namespace:
@@ -114,14 +115,10 @@ def damped_least_squares(
 
 def main() -> None:
     args = parse_args()
-    model = mujoco.MjModel.from_xml_path(args.xml_path)
-    data = mujoco.MjData(model)
-
-    if sys.platform == "darwin" and not os.environ.get("MJPYTHON_BIN"):
-        raise RuntimeError(
-            "On macOS, MuJoCo's viewer requires running under `mjpython`.\n"
-            "Try: mjpython arm_follow_target.py {}".format(args.xml_path)
-        )
+    env = SimpleMujocoEnv(args.xml_path)
+    model = env.model
+    data = env.data
+    env.require_mjpython("arm_follow_target.py")
 
     joint_actuator_pairs = [
         ("root_y", "motor_root_y"),
@@ -241,7 +238,7 @@ def main() -> None:
                     gear = state["gear"]
                     data.ctrl[state["aid"]] = torque / gear if gear != 0.0 else 0.0
 
-                mujoco.mj_step(model, data)
+                env.step()
 
                 viewer.user_scn.ngeom = 0
                 mujoco.mjv_initGeom(

@@ -1,10 +1,11 @@
 import argparse
 import os
-import sys
 import time
 
 import mujoco
 import mujoco.viewer
+
+from simple_mujoco_env import SimpleMujocoEnv
 
 
 def parse_args() -> argparse.Namespace:
@@ -20,15 +21,10 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> None:
     args = parse_args()
-    xml_path = args.xml_path
-    model = mujoco.MjModel.from_xml_path(xml_path)
-    data = mujoco.MjData(model)
-
-    if sys.platform == "darwin" and not os.environ.get("MJPYTHON_BIN"):
-        raise RuntimeError(
-            "On macOS, MuJoCo's viewer requires running under `mjpython`.\n"
-            f"Try: mjpython visualize_hand.py {xml_path}"
-        )
+    env = SimpleMujocoEnv(args.xml_path)
+    model = env.model
+    data = env.data
+    env.require_mjpython("visualize_hand.py")
 
     with mujoco.viewer.launch_passive(model, data) as viewer:
         # Frame the hand in view on launch.
@@ -37,7 +33,7 @@ def main() -> None:
         viewer.cam.azimuth = 135.0
         viewer.cam.elevation = -20.0
         while viewer.is_running():
-            mujoco.mj_step(model, data)
+            env.step()
             viewer.sync()
             time.sleep(0.01)
 

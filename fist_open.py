@@ -6,6 +6,8 @@ import time
 import mujoco
 import mujoco.viewer
 
+from simple_mujoco_env import SimpleMujocoEnv
+
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
@@ -37,8 +39,9 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> None:
     args = parse_args()
-    model = mujoco.MjModel.from_xml_path(args.xml_path)
-    data = mujoco.MjData(model)
+    env = SimpleMujocoEnv(args.xml_path)
+    model = env.model
+    data = env.data
 
     # Drive all finger joints (MCP/PIP/DIP) to make a fist, then open.
     joint_names = [
@@ -77,11 +80,7 @@ def main() -> None:
 
     t0 = time.time()
 
-    if os.environ.get("MJPYTHON_BIN") is None and os.sys.platform == "darwin":
-        raise RuntimeError(
-            "On macOS, MuJoCo's viewer requires running under `mjpython`.\n"
-            f"Try: mjpython fist_open.py {args.xml_path}"
-        )
+    env.require_mjpython("fist_open.py")
 
     with mujoco.viewer.launch_passive(model, data) as viewer:
         # Frame the hand in view on launch.
@@ -107,7 +106,7 @@ def main() -> None:
                 gear = float(model.actuator_gear[aid, 0])
                 data.ctrl[aid] = torque / gear if gear != 0.0 else 0.0
 
-            mujoco.mj_step(model, data)
+            env.step()
             viewer.sync()
             time.sleep(args.sleep)
 

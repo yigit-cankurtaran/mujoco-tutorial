@@ -1,13 +1,14 @@
 import argparse
 import math
 import os
-import sys
 import time
 
 import numpy as np
 
 import mujoco
 import mujoco.viewer
+
+from simple_mujoco_env import SimpleMujocoEnv
 
 
 def parse_args() -> argparse.Namespace:
@@ -60,14 +61,10 @@ def _clamp_norm(v: np.ndarray, max_norm: float) -> np.ndarray:
 
 def main() -> None:
     args = parse_args()
-    model = mujoco.MjModel.from_xml_path(args.xml_path)
-    data = mujoco.MjData(model)
-
-    if sys.platform == "darwin" and not os.environ.get("MJPYTHON_BIN"):
-        raise RuntimeError(
-            "On macOS, MuJoCo's viewer requires running under `mjpython`.\n"
-            "Try: mjpython quadcopter_square.py {}".format(args.xml_path)
-        )
+    env = SimpleMujocoEnv(args.xml_path)
+    model = env.model
+    data = env.data
+    env.require_mjpython("quadcopter_square.py")
 
     body_id = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_BODY, "drone")
     free_jid = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_JOINT, "drone_free")
@@ -175,7 +172,7 @@ def main() -> None:
                 ctrl_min, ctrl_max = model.actuator_ctrlrange[aid]
                 data.ctrl[aid] = float(np.clip(thrust, ctrl_min, ctrl_max))
 
-            mujoco.mj_step(model, data)
+            env.step()
             viewer.cam.lookat[:] = data.xpos[body_id]
             viewer.sync()
             time.sleep(args.sleep)
