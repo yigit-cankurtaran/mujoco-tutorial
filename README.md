@@ -20,6 +20,9 @@ or controlling each scene.
 - `quadcopter.xml`
   - Quadrotor body with four rotor sites and general actuators.
   - Includes gravity, RK4 integrator, and a ground plane.
+- `actuation_robot.xml`
+  - Two-joint arm with passive flexible link segments and two motor actuators.
+  - Useful for demos that contrast actuated shoulder/elbow joints with unactuated flex joints.
 - `robot_hand.xml`
   - Multi-finger hand model with hinge joints and per-joint motors.
   - Higher-frequency timestep and tuned joint friction/damping.
@@ -42,9 +45,19 @@ or controlling each scene.
 - `quadcopter_square.py`  
   Simple quadcopter controller that flies a smooth looping path
   (defaults to `quadcopter.xml`).
+- `actuation_example.py`  
+  Runs the `actuation_robot.xml` arm and alternates shoulder/elbow motor commands
+  to show how the passive flex joints respond.
 - `fist_open.py`  
   PD control to close the hand into a fist and open it back up
   (defaults to `robot_hand.xml`).
+
+## Helpers
+
+- `simple_mujoco_env.py`
+  Lightweight wrapper around `mujoco.MjModel` and `mujoco.MjData` that provides
+  `reset()`, `step()`, and observation helpers for the example scripts.
+  Also includes the macOS `mjpython` runtime check used by viewer-based demos.
 
 ## Quick start
 
@@ -65,6 +78,9 @@ python arm_follow_target.py
 
 # quadcopter loop
 python quadcopter_square.py --radius 1.5 --height 1.2 --yaw-follow
+
+# actuation demo
+python actuation_example.py
 
 # hand demo
 python visualize_hand.py
